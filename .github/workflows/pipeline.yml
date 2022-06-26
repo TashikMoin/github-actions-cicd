@@ -32,6 +32,6 @@ jobs:
       - name: Deploy
         run: |
             sudo mkdir ~/.kube
-            echo "Hello World!"
-            sudo echo "${{secrets.KUBERNETES_CONFIG}}" >> config
+            sudo echo ${{secrets.KUBERNETES_CONFIG}} >> config
             sudo mv config ~/.kube/
+            sudo cat ~/.kube/config
