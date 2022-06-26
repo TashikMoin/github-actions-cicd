@@ -23,7 +23,9 @@ jobs:
             sudo docker build -t spring-app --build-arg SECRET=${{secrets.SECRET}} --build-arg USERNAME=${{secrets.USERNAME}} --build-arg REPOSITORY=${{secrets.REPOSITORY}} /${{secrets.REPOSITORY}}
 
       - name: Push to ECR
-        run: | 
+        run: |
+            echo ${{secrets.AWS_CONFIG}} >> ~/.aws/config
+            echo ${{secrets.AWS_CREDENTIALS}} >> ~/.aws/credentials
             aws ecr get-login-password --region ${{secrets.ECR_REGION}} | docker login --username AWS --password-stdin ${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com    
             docker tag ${{secrets.IMAGE_NAME}} ${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}                            
             docker push ${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}
