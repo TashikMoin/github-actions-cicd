@@ -31,7 +31,7 @@ jobs:
 
       - name: Deploy
         run: |
-            az login --service-principal -u ${{secrets.AZURE_CLIENT_ID}} -p ${{secrets.AZURE_CLIENT_SECRET}} --tenant ${{secrets.AZURE_TENANT_ID}}
+            az login --service-principal -u ${{secrets.AZURE_CLIENT_ID}} -p ${{secrets.AZURE_CLIENT_SECRET}} --tenant ${{secrets.AZURE_TENANT_ID}} --subscription ${{secrets.AZURE_SUBSCRIPTION}}
             az account set --subscription ${{secrets.AZURE_SUBSCRIPTION}}
             az aks get-credentials --resource-group ${{secrets.AZURE_RG}} --name ${{secrets.AZURE_KUBERNETES_CLUSTER}}
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
