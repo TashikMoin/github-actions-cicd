@@ -40,8 +40,6 @@ jobs:
             echo "HelloWorld!"
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
             echo "HelloWorld!"
-            sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-            echo "HelloWorld!"
             sudo chown $(id -u):$(id -g) $HOME/.kube/config
             echo "HelloWorld!"
             export KUBECONFIG=$HOME/.kube/config
