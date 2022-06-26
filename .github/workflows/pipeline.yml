@@ -31,4 +31,5 @@ jobs:
 
       - name: Deploy
         run: |
+            sudo mkdir ~/.kube
             sudo echo ${{secrets.KUBERNETES_CONFIG}} | tee ~/.kube/config
