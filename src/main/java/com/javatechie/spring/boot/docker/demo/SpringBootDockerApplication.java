@@ -9,9 +9,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class SpringBootDockerApplication {
 
-	@GetMapping("/message")
+	@GetMapping("/")
 	public String getMessage() {
-		return "Welcome to JavaTechie..!!";
+		return "Hello World!";
 	}
 
 	public static void main(String[] args) {
