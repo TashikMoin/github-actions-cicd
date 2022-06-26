@@ -34,6 +34,7 @@ jobs:
             az login --service-principal -u ${{secrets.AZURE_CLIENT_ID}} -p ${{secrets.AZURE_CLIENT_SECRET}} --tenant ${{secrets.AZURE_TENANT_ID}}
             az account set --subscription ${{secrets.AZURE_SUBSCRIPTION}}
             az aks get-credentials --resource-group ${{secrets.AZURE_RG}} --name ${{secrets.AZURE_KUBERNETES_CLUSTER}}
-            kubectl create secret docker-registry ecr --docker-server=${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com --docker-username=AWS --from-file --docker-password=$(aws ecr get-login-password --region ${{secrets.ECR_REGION}})
+            $PASSWORD=$(aws ecr get-login-password --region ${{secrets.ECR_REGION}})
+            kubectl create secret docker-registry ecr --docker-server=${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com --docker-username=AWS --docker-password=${PASSWORD}
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
             sudo kubectl apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
