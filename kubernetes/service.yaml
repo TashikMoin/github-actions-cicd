@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: java-spring-service
+  namespace: default
+spec:
+  ports:
+    - port: 80 # service port
+      protocol: TCP
+      targetPort: 8080 # port of container
+  selector:
+    name: java-spring-pod-label
+  type: LoadBalancer
