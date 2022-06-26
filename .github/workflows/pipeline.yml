@@ -15,8 +15,7 @@ jobs:
     steps:
     - name: Checkout
       run: |
-      apt install git
-      git clone https://${{USERNAME}}:${{SECRET}}@github.com/${{USERNAME}}/${{REPOSITORY}}.git /app
+      echo "Hello World!"
 
     - name: Build, Test, Lint
       run: |
