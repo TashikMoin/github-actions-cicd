@@ -20,6 +20,10 @@ jobs:
 
       - name: Build
         run: |
+            docker run --rm \
+                -p 9000:9000 \
+                -v sonarqube_extensions:/opt/sonarqube/extensions \
+                sonarqube
             sudo docker build -t spring-app --build-arg SECRET=${{secrets.SECRET}} --build-arg USERNAME=${{secrets.USERNAME}} --build-arg REPOSITORY=${{secrets.REPOSITORY}} /${{secrets.REPOSITORY}}
 
       - name: Push to ECR

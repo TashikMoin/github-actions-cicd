@@ -9,7 +9,7 @@ FROM maven:3-jdk-8 as builder
 ARG REPOSITORY
 COPY --from=code /${REPOSITORY} /${REPOSITORY} 
 WORKDIR ${REPOSITORY}
-RUN mvn clean package && mvn sonar:sonar
+RUN mvn clean package && mvn clean verify sonar:sonar
 
 
 FROM openjdk:8-jdk-alpine
