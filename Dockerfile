@@ -8,7 +8,7 @@ RUN git clone https://USERNAME:${GITHUB_SECRET}@github.com/${USERNAME}/${REPOSIT
 FROM maven:3-jdk-8 as builder
 COPY --from=code /app /app 
 WORKDIR /app
-RUN mvn clean package
+RUN mvn clean package && mvn sonar
 
 
 FROM openjdk:8-jdk-alpine
