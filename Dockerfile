@@ -1,14 +1,14 @@
 FROM alpine/git AS code
-ARG GITHUB_SECRET 
+ARG SECRET 
 ARG USERNAME
 ARG REPOSITORY
-RUN git clone https://USERNAME:${GITHUB_SECRET}@github.com/${USERNAME}/${REPOSITORY}.git /app
+RUN git clone https://USERNAME:${SECRET}@github.com/${USERNAME}/${REPOSITORY}.git /app
 
 
 FROM maven:3-jdk-8 as builder
 COPY --from=code /app /app 
 WORKDIR /app
-RUN mvn clean package && mvn sonar
+RUN mvn clean package && mvn sonar:sonar
 
 
 FROM openjdk:8-jdk-alpine
