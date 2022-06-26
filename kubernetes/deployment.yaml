@@ -24,7 +24,7 @@ spec:
       containers:
         - name: java-spring
           image: <ECR_IMAGE>
-          imagePullSecrets:
-          - name: ecr
           ports:
             - containerPort: 8080
+      imagePullSecrets:
+      - name: ecr
