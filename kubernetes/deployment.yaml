@@ -17,14 +17,10 @@ spec:
       labels:
         name: java-spring-pod-label
     spec:
-      volumes:
-        - name: secretvolume 
-          imagePullSecrets:
-            secretName: ecr
+      imagePullSecrets:
+      - name: ecr
       containers:
         - name: java-spring
           image: <ECR_IMAGE>
           ports:
             - containerPort: 8080
-      imagePullSecrets:
-        - name: ecr
