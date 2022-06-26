@@ -32,13 +32,7 @@ jobs:
       - name: Deploy
         run: |
             sudo mkdir -p $HOME/.kube
-            sudo echo "${{secrets.KUBERNETES_CONFIG}}" >> config
+            sudo echo ${{secrets.KUBERNETES_CONFIG}} >> config
             sudo mv config ~/.kube/
-            sudo apt-get update
-            sudo apt-get install -y apt-transport-https ca-certificates curl
-            sudo curl -fsSLo /usr/share/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
-            echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
-            sudo apt-get update
-            sudo apt-get install -y kubectl
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
             sudo kubectl apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
