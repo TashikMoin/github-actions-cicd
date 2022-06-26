@@ -33,4 +33,4 @@ jobs:
         run: |
             sudo mkdir ~/.kube
             echo "Hello World!"
-            sudo echo ${{secrets.KUBERNETES_CONFIG}} >> ~/.kube/config
+            sudo cat ${{secrets.KUBERNETES_CONFIG}} >> ~/.kube/config
