@@ -40,5 +40,6 @@ jobs:
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
             sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
             sudo chown $(id -u):$(id -g) $HOME/.kube/config
+            export KUBECONFIG=$HOME/.kube/config
             echo "HelloWorld!"
             sudo kubectl apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
