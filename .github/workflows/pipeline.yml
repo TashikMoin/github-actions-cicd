@@ -25,6 +25,7 @@ jobs:
       - name: Push to ECR
         run: |
             aws configure set aws_access_key_id ${{secrets.AWS_ACCESS_KEY_ID}}
+            export aws_secret_access_key=${{secrets.AWS_SECRET_ACCESS_KEY}}
             aws ecr get-login-password --region ${{secrets.ECR_REGION}} | docker login --username AWS --password-stdin ${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com    
             docker tag ${{secrets.IMAGE_NAME}} ${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}                            
             docker push ${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}
