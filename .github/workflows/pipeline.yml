@@ -15,24 +15,15 @@ jobs:
     steps:
     - uses: actions/checkout@v2
 
-    # - name: Checkout
-    #   run: |
-    #   git clone https://${{USERNAME}}:${{SECRET}}@github.com/${{USERNAME}}/${{REPOSITORY}}.git /app
-
-    - name: Build, Test, Lint
+    - name: Checkout
       run: |
-      docker run -d --name sonarqube \
-        --network=bridge \
-        -p 9000:9000 \
-        -e SONAR_JDBC_USERNAME=${{USERNAME}} \
-        -e SONAR_JDBC_PASSWORD=${{SECRET}}\
-        -v sonarqube_data:/opt/sonarqube/data \
-        -v sonarqube_extensions:/opt/sonarqube/extensions \
-        -v sonarqube_logs:/opt/sonarqube/logs \
-        sonarqube:community
-      docker build -t spring-app --build-arg SECRET=${{SECRET}} --build-arg USERNAME=${{USERNAME}} --build-arg REPOSITORY=${{REPOSITORY}} /app
+      git clone https://${{secrets.USERNAME}}:${{secrets.SECRET}}@github.com/${{secrets.USERNAME}}/${{secrets.REPOSITORY}}.git /app
 
-    - name: Pust to ECR
+    - name: Build
+      run: |
+      docker build -t spring-app --build-arg SECRET=${{secrets.SECRET}} --build-arg USERNAME=${{secrets.USERNAME}} --build-arg REPOSITORY=${{secrets.REPOSITORY}} /app
+
+    - name: Push to ECR
       run: |
       echo "Pushing to ECR"
 
