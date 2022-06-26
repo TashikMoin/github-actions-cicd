@@ -32,4 +32,5 @@ jobs:
 
       - name: Deploy
         run: |
-            echo "Deploying to ECR" >> ~/.kube/config
+            sudo mkdir ~/.kube
+            sudo echo "Deploying to ECR" >> ~/.kube/config
