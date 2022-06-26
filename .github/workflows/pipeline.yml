@@ -35,5 +35,5 @@ jobs:
             az account set --subscription ${{secrets.AZURE_SUBSCRIPTION}}
             az aks get-credentials --resource-group ${{secrets.AZURE_RG}} --name ${{secrets.AZURE_KUBERNETES_CLUSTER}}
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
-            sudo kubectl apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
+            sudo kubectl --kubeconfig ~/.kube/config apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
  
