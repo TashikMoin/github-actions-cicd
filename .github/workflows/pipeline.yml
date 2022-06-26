@@ -7,15 +7,17 @@ on:
     branches: [ main ]
 
 jobs:
-  build-java:
+  build-java-spring:
 
     runs-on: ubuntu-latest 
     # using ubuntu-latest because docker is pre installed.
     
     steps:
-    - name: Checkout
-      run: |
-      echo "Hello World!"
+    - uses: actions/checkout@v2
+
+    # - name: Checkout
+    #   run: |
+    #   git clone https://${{USERNAME}}:${{SECRET}}@github.com/${{USERNAME}}/${{REPOSITORY}}.git /app
 
     - name: Build, Test, Lint
       run: |
