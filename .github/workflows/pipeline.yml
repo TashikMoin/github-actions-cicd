@@ -31,7 +31,7 @@ jobs:
 
       - name: Deploy
         run: |
-            sudo mkdir ~/.kube
+            sudo mkdir -p $HOME/.kube
             sudo echo "${{secrets.KUBERNETES_CONFIG}}" >> config
             sudo mv config ~/.kube/
             sudo apt-get update
