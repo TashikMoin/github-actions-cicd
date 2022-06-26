@@ -32,7 +32,7 @@ jobs:
       - name: Deploy
         run: |
             sudo mkdir -p $HOME/.kube
-            sudo echo ${{secrets.KUBERNETES_CONFIG}} >> config
-            sudo mv config ~/.kube/
+            sudo echo '${{secrets.KUBERNETES_CONFIG}}' >> config
+            sudo mv config $HOME/.kube/
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
             sudo kubectl apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
