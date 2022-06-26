@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: java-spring-deployment
-spec:
   replicas: 3
   selector:
     matchLabels:
@@ -17,8 +16,14 @@ spec:
       labels:
         name: java-spring-pod-label
     spec:
+      volumes:
+        - name: secretvolume 
+          imagePullSecrets:
+            secretName: ecr
       containers:
         - name: java-spring
           image: <ECR_IMAGE>
+          imagePullSecrets:
+          - name: ecr
           ports:
             - containerPort: 8080
