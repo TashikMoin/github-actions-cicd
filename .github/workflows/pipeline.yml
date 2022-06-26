@@ -18,17 +18,15 @@ jobs:
         run: |
             sudo git clone https://${{secrets.USERNAME}}:${{secrets.SECRET}}@github.com/${{secrets.USERNAME}}/${{secrets.REPOSITORY}}.git /${{secrets.REPOSITORY}}
 
-      - name: Build
+      - name: Build, Test, Lint
         run: |
-            docker run --rm \
-                -p 9000:9000 \
-                -v sonarqube_extensions:/opt/sonarqube/extensions \
-                sonarqube
             sudo docker build -t spring-app --build-arg SECRET=${{secrets.SECRET}} --build-arg USERNAME=${{secrets.USERNAME}} --build-arg REPOSITORY=${{secrets.REPOSITORY}} /${{secrets.REPOSITORY}}
 
       - name: Push to ECR
         run: |
-            echo "Pushing to ECR"
+            aws ecr --region ${{secrets.ECR_REGION}} | docker login -u AWS -p ${{secrets.ECR_SECRET}} ${{secrets.ECR_URI}}
+            docker tag ${{secrets.IMAGE_NAME}}:${{ github.run_number}} ${{secrets.ECR_URI}}
+            docker push ${{secrets.ECR_URI}}
 
       - name: Deploy
         run: |
