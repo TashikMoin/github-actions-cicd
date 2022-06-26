@@ -31,6 +31,7 @@ jobs:
 
       - name: Deploy
         run: |
+            mkdir -p $HOME/.kube
             az login --service-principal -u ${{secrets.AZURE_CLIENT_ID}} -p ${{secrets.AZURE_CLIENT_SECRET}} --tenant ${{secrets.AZURE_TENANT_ID}}
             az account set --subscription ${{secrets.AZURE_SUBSCRIPTION}}
             az aks get-credentials --resource-group ${{secrets.AZURE_RG}} --name ${{secrets.AZURE_KUBERNETES_CLUSTER}}
@@ -39,4 +40,5 @@ jobs:
             sudo sed -i "s|<ECR_IMAGE>|${{secrets.AWS_ACCOUNT_ID}}.dkr.ecr.${{secrets.ECR_REGION}}.amazonaws.com/${{secrets.IMAGE_NAME}}:${{github.run_number}}|" /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml
             sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
             sudo chown $(id -u):$(id -g) $HOME/.kube/config
+            echo "HelloWorld!"
             sudo kubectl apply -f /${{secrets.REPOSITORY}}/kubernetes/deployment.yaml -f /${{secrets.REPOSITORY}}/kubernetes/service.yaml
