@@ -21,6 +21,6 @@ spec:
       - name: ecr
       containers:
         - name: java-spring
-          image: <ECR_IMAGE>
+          image: <ECR_IMAGE> 
           ports:
             - containerPort: 8080
