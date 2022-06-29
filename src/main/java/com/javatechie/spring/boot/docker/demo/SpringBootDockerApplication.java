@@ -11,7 +11,7 @@ public class SpringBootDockerApplication {
 
 	@GetMapping("/")
 	public String getMessage() {
-		return "Hello World!";
+		return "Welcome to SadaPay!";
 	}
 
 	public static void main(String[] args) {
