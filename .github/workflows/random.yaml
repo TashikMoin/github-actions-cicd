@@ -1,0 +1,83 @@
+name: "Development CI/CD"
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - develop
+  push:
+    branches:
+      - develop
+
+jobs:
+  Build:
+    runs-on: ${{ vars.GHA_RUNNER }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: building docker image
+        env:
+          IMAGE: "746905583608.dkr.ecr.eu-west-1.amazonaws.com/johndoe-java-spring"
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+            docker build -t $IMAGE:${GITHUB_SHA::7} .
+            docker save $IMAGE:${GITHUB_SHA::7} | gzip > image.tar.gz
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: image.tar.gz
+
+  Test:
+    needs: Build
+    runs-on: ${{ vars.GHA_RUNNER }}
+    steps:
+      - name: Run tests
+        run: |
+          echo "... Running Tests ..."
+          sleep 3
+          echo "... All tests were passed! ..."
+
+
+  Push-To-ECR:
+    needs: Test
+    runs-on: ${{ vars.GHA_RUNNER }}
+    steps:
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-region: eu-west-1
+          role-to-assume: arn:aws:iam::746905583608:role/GitHubActions
+          role-session-name: GitHubActionsSession
+      - name: Download Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+          path: .
+      - name: Load Docker image
+        run: |
+          gzip -d image.tar.gz
+          docker load < image.tar
+      - name: Push to ECR
+        env:
+          IMAGE: 746905583608.dkr.ecr.eu-west-1.amazonaws.com/johndoe-java-spring
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} | docker login --username AWS --password-stdin 746905583608.dkr.ecr.eu-west-1.amazonaws.com
+          docker push "$IMAGE:${GITHUB_SHA::7}"
+
+
+  Deploy:
+    needs: Push-To-ECR
+    runs-on: ${{ vars.GHA_RUNNER }}
+    environment:
+      name: Development
+    steps:
+      - name: Deploy to Kubernetes
+        run: | 
+          echo "... Deploying ..."
+          echo "... Cloning Infrastructure Repository ..."
+          echo "... updating service version ..."
+          echo "... committing changes ..."
+          sleep 3
+          echo "... Deployment succeed! ..."
