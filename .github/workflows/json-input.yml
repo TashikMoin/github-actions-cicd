@@ -1,0 +1,32 @@
+name: Platform Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      customers:
+        description: 'Customer JSON'
+        required: true
+        default: '[{"name": "itc", "env": ["dev"]}, {"name": "be", "env": ["dev", "stg", "prod"]}, {"name": "sp", "env": ["stg"]}]'
+
+jobs:
+  job1:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    env:
+      customers: ${{ github.event.inputs.customers }}
+    steps:
+      - id: set-matrix
+        run: |
+          echo "customers=$customers"
+          
+          matrix=$(echo "$customers" | jq -c '[.[] | {project: .name, env: .env[]} ]')
+          echo "matrix=$matrix"
+          echo "matrix={\"include\":$matrix}" >> $GITHUB_OUTPUT
+  job2:
+    needs: job1
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.job1.outputs.matrix) }}
+    steps:
+      - run: echo "Matrix - Project ${{ matrix.project }}, Env ${{ matrix.env }}"
