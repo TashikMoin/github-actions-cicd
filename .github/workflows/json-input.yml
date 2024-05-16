@@ -29,4 +29,6 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.job1.outputs.matrix) }}
     steps:
-      - run: echo "Matrix - Project ${{ matrix.project }}, Env ${{ matrix.env }}"
+      - run: |
+          echo "Matrix - Project ${{ matrix.project }}, Env ${{ matrix.env }}"
+          echo "${{ fromJSON(needs.job1.outputs.matrix) }}"
