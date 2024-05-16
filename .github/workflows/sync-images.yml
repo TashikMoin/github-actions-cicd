@@ -1,0 +1,72 @@
+name: Sync Workflow
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_account_name:
+        description: 'Name of the source AWS account'
+        required: true
+      target_account_name:
+        description: 'Name of the target AWS account'
+        required: true
+      source_ecr_repo:
+        description: 'Source ECR repository name'
+        required: true
+      target_ecr_repo:
+        description: 'Target ECR repository name'
+        required: true
+      image_version:
+        description: 'Image version'
+        required: true
+
+jobs:
+  Sync:
+    runs-on: ${{ vars.GHA_RUNNER }}
+    env:
+      SOURCE_ROLE_ARN: ${{ secrets[format('ROLE_ARN_{0}', github.event.inputs.source_account_name)] }}
+      SOURCE_REGION: ${{ secrets[format('REGION_{0}', github.event.inputs.source_account_name)] }}
+      TARGET_ROLE_ARN: ${{ secrets[format('ROLE_ARN_{0}', github.event.inputs.target_account_name)] }}
+      TARGET_REGION: ${{ secrets[format('REGION_{0}', github.event.inputs.target_account_name)] }}
+    steps:
+    - name: Assume Role and Configure AWS Credentials for Source Account
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.SOURCE_ROLE_ARN }}
+        aws-region: ${{ env.SOURCE_REGION }}
+        role-session-name: GitHubActionsSession
+    - name: Login to Source ECR
+      run: |
+        SOURCE_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+        SOURCE_ECR_ENDPOINT="${SOURCE_ACCOUNT_ID}.dkr.ecr.${{ env.SOURCE_REGION }}.amazonaws.com"
+        echo "SOURCE_ECR_ENDPOINT=$SOURCE_ECR_ENDPOINT" >> $GITHUB_ENV
+        aws ecr get-login-password --region ${{ env.SOURCE_REGION }} | docker login --username AWS --password-stdin $SOURCE_ECR_ENDPOINT
+    - name: Pull Image from Source ECR
+      run: |
+        echo "IMAGE_VERSION=${{ github.event.inputs.image_version }}" >> $GITHUB_ENV
+        echo "SOURCE_ECR_REPO=${{ github.event.inputs.source_ecr_repo }}" >> $GITHUB_ENV
+    - name: Pull Image
+      run: |
+        IMAGE_URI="${SOURCE_ECR_ENDPOINT}/${SOURCE_ECR_REPO}:${IMAGE_VERSION}"
+        docker pull $IMAGE_URI
+    - name: Assume Role and Configure AWS Credentials for Target Account
+      if: ${{ github.event.inputs.source_account_name != github.event.inputs.target_account_name }}
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ env.TARGET_ROLE_ARN }}
+        aws-region: ${{ env.TARGET_REGION }}
+        role-session-name: GitHubActionsSession
+    - name: Login to Target ECR
+      run: |
+        TARGET_ACCOUNT_ID=$(aws sts get-caller-identity --query 'Account' --output text)
+        TARGET_ECR_ENDPOINT="${TARGET_ACCOUNT_ID}.dkr.ecr.${{ env.TARGET_REGION }}.amazonaws.com"
+        echo "TARGET_ECR_ENDPOINT=$TARGET_ECR_ENDPOINT" >> $GITHUB_ENV
+        aws ecr get-login-password --region ${{ env.TARGET_REGION }} | docker login --username AWS --password-stdin $TARGET_ECR_ENDPOINT
+    - name: Tag and Push Image to Target ECR
+      run: |
+        echo "TARGET_ECR_REPO=${{ github.event.inputs.target_ecr_repo }}" >> $GITHUB_ENV
+    - name: Tag and Push Image
+      run: |
+        SOURCE_IMAGE_URI="${SOURCE_ECR_ENDPOINT}/${SOURCE_ECR_REPO}:${IMAGE_VERSION}"
+        TARGET_IMAGE_URI="${TARGET_ECR_ENDPOINT}/${TARGET_ECR_REPO}:${IMAGE_VERSION}"
+        docker tag $SOURCE_IMAGE_URI $TARGET_IMAGE_URI
+        docker push $TARGET_IMAGE_URI
