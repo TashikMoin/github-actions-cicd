@@ -1,5 +1,7 @@
 name: Generate Matrix
 
+name: Platform Release
+
 on:
   workflow_dispatch:
     inputs:
@@ -9,7 +11,7 @@ on:
         default: '[{"Customer": "itc", "Environments": ["development"]}, {"Customer": "be", "Environments": ["development", "staging", "production"]}, {"Customer": "sp", "Environments": ["staging"]}]'
 
 jobs:
-  preprocess:
+  pre-processing:
     runs-on: ubuntu-latest
     env:
       customers: ${{ github.event.inputs.customers }}
@@ -20,39 +22,42 @@ jobs:
     steps:
     - id: set-matrix
       run: |
-        development_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("development") != null) | { Customer: .Customer, Environments: "development" })')
-        staging_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("staging") != null) | { Customer: .Customer, Environments: "staging" })')
-        production_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("production") != null) | { Customer: .Customer, Environments: "production" })')
+        development_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("development") != null) | { Customer: .Customer, Environment: "development" })')
+        staging_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("staging") != null) | { Customer: .Customer, Environment: "staging" })')
+        production_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("production") != null) | { Customer: .Customer, Environment: "production" })')
         echo "development_matrix={\"include\":$development_matrix}" >> $GITHUB_OUTPUT
         echo "staging_matrix={\"include\":$staging_matrix}" >> $GITHUB_OUTPUT
         echo "production_matrix={\"include\":$production_matrix}" >> $GITHUB_OUTPUT
+
   platform-release-development:
-    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environments }}
-    needs: preprocess
-    environment: ${{ matrix.Customer }}-${{ matrix.Environments }}
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: pre-processing
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.preprocess.outputs.development_matrix) }}
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.development_matrix) }}
     steps:
     - run: |
-        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environments }}"
+        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environment }}"
+
   platform-release-staging:
-    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environments }}
-    needs: [ preprocess , platform-release-development ]
-    environment: ${{ matrix.Customer }}-${{ matrix.Environments }}
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: [ pre-processing , platform-release-development ]
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.preprocess.outputs.staging_matrix) }}
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.staging_matrix) }}
     steps:
     - run: |
-        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environments }}"
+        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environment }}"
+
   platform-release-production:
-    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environments }}
-    needs: [ preprocess , platform-release-staging ]
-    environment: ${{ matrix.Customer }}-${{ matrix.Environments }}
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: [ pre-processing , platform-release-staging ]
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.preprocess.outputs.production_matrix) }}
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.production_matrix) }}
     steps:
     - run: |
-        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environments }}"
+        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environment }}"
