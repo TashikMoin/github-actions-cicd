@@ -6,53 +6,56 @@ on:
       customers:
         description: 'Customer JSON'
         required: true
-        default: '[{"customer": "itc", "env": ["dev"]}, {"customer": "be", "env": ["dev", "stg", "prod"]}, {"customer": "sp", "env": ["stg"]}]'
+        default: '[{"Customer": "itc", "Environments": ["development"]}, {"Customer": "be", "Environments": ["development", "staging", "production"]}, {"Customer": "sp", "Environments": ["staging"]}]'
 
 jobs:
-  preprocess:
+  pre-processing:
     runs-on: ubuntu-latest
     env:
       customers: ${{ github.event.inputs.customers }}
     outputs:
-      dev_matrix: ${{ steps.set-matrix.outputs.dev_matrix }}
-      stg_matrix: ${{ steps.set-matrix.outputs.stg_matrix }}
-      prod_matrix: ${{ steps.set-matrix.outputs.prod_matrix }}
+      development_matrix: ${{ steps.set-matrix.outputs.development_matrix }}
+      staging_matrix: ${{ steps.set-matrix.outputs.staging_matrix }}
+      production_matrix: ${{ steps.set-matrix.outputs.production_matrix }}
     steps:
     - id: set-matrix
       run: |
-        dev_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("dev") != null) | { customer: .customer, env: "dev" })')
-        stg_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("stg") != null) | { customer: .customer, env: "stg" })')
-        prod_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("prod") != null) | { customer: .customer, env: "prod" })')
-        echo "dev_matrix={\"include\":$dev_matrix}" >> $GITHUB_OUTPUT
-        echo "stg_matrix={\"include\":$stg_matrix}" >> $GITHUB_OUTPUT
-        echo "prod_matrix={\"include\":$prod_matrix}" >> $GITHUB_OUTPUT
+        development_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("development") != null) | { Customer: .Customer, Environment: "development" })')
+        staging_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("staging") != null) | { Customer: .Customer, Environment: "staging" })')
+        production_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("production") != null) | { Customer: .Customer, Environment: "production" })')
+        echo "development_matrix={\"include\":$development_matrix}" >> $GITHUB_OUTPUT
+        echo "staging_matrix={\"include\":$staging_matrix}" >> $GITHUB_OUTPUT
+        echo "production_matrix={\"include\":$production_matrix}" >> $GITHUB_OUTPUT
 
-  platform-release-dev:
-    name: platform-release-${{ matrix.customer }}-dev
-    needs: preprocess
+  platform-release-development:
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: pre-processing
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.preprocess.outputs.dev_matrix) }}
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.development_matrix) }}
     steps:
     - run: |
-        echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
+        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environment }}"
 
-  platform-release-stg:
-    name: platform-release-${{ matrix.customer }}-stg
-    needs: [ preprocess , platform-release-dev ]
+  platform-release-staging:
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: [ pre-processing , platform-release-development ]
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.preprocess.outputs.stg_matrix) }}
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.staging_matrix) }}
     steps:
     - run: |
-        echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
+        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environment }}"
 
-  platform-release-prod:
-    name: platform-release-${{ matrix.customer }}-prod
-    needs: [ preprocess , platform-release-stg ]
+  platform-release-production:
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: [ pre-processing , platform-release-staging ]
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
     runs-on: ubuntu-latest
     strategy:
-      matrix: ${{ fromJSON(needs.preprocess.outputs.prod_matrix) }}
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.production_matrix) }}
     steps:
     - run: |
-        echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
+        echo "Matrix - Customer ${{ matrix.Customer }}, Environments ${{ matrix.Environment }}"
