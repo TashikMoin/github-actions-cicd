@@ -6,7 +6,7 @@ on:
       customers:
         description: 'Customer JSON'
         required: true
-        default: '[{"name": "itc", "env": ["dev"]}, {"name": "be", "env": ["dev", "stg", "prod"]}, {"name": "sp", "env": ["stg"]}]'
+        default: '[{"customer": "itc", "env": ["dev"]}, {"customer": "be", "env": ["dev", "stg", "prod"]}, {"customer": "sp", "env": ["stg"]}]'
 
 jobs:
   preprocess:
@@ -20,14 +20,15 @@ jobs:
     steps:
     - id: set-matrix
       run: |
-        dev_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("dev") != null) | { name: .name, env: "dev" })')
-        stg_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("stg") != null) | { name: .name, env: "stg" })')
-        prod_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("prod") != null) | { name: .name, env: "prod" })')
+        dev_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("dev") != null) | { customer: .customer, env: "dev" })')
+        stg_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("stg") != null) | { customer: .customer, env: "stg" })')
+        prod_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("prod") != null) | { customer: .customer, env: "prod" })')
         echo "dev_matrix={\"include\":$dev_matrix}" >> $GITHUB_OUTPUT
         echo "stg_matrix={\"include\":$stg_matrix}" >> $GITHUB_OUTPUT
         echo "prod_matrix={\"include\":$prod_matrix}" >> $GITHUB_OUTPUT
 
   platform-release-dev:
+    name: platform-release-${{ matrix.customer }}-dev
     needs: preprocess
     runs-on: ubuntu-latest
     strategy:
@@ -40,6 +41,7 @@ jobs:
         echo ${{ needs.preprocess.outputs.prod_matrix }}
 
   platform-release-stg:
+    name: platform-release-${{ matrix.customer }}-stg
     needs: [ preprocess , platform-release-dev ]
     runs-on: ubuntu-latest
     strategy:
@@ -52,6 +54,7 @@ jobs:
         echo ${{ needs.preprocess.outputs.prod_matrix }}
 
   platform-release-prod:
+    name: platform-release-${{ matrix.customer }}-prod
     needs: [ preprocess , platform-release-stg ]
     runs-on: ubuntu-latest
     strategy:
