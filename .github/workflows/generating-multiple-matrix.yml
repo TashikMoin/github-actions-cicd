@@ -36,9 +36,6 @@ jobs:
     steps:
     - run: |
         echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
-        echo ${{ needs.preprocess.outputs.dev_matrix }}
-        echo ${{ needs.preprocess.outputs.stg_matrix }}
-        echo ${{ needs.preprocess.outputs.prod_matrix }}
 
   platform-release-stg:
     name: platform-release-${{ matrix.customer }}-stg
@@ -49,9 +46,6 @@ jobs:
     steps:
     - run: |
         echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
-        echo ${{ needs.preprocess.outputs.dev_matrix }}
-        echo ${{ needs.preprocess.outputs.stg_matrix }}
-        echo ${{ needs.preprocess.outputs.prod_matrix }}
 
   platform-release-prod:
     name: platform-release-${{ matrix.customer }}-prod
@@ -62,6 +56,3 @@ jobs:
     steps:
     - run: |
         echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
-        echo ${{ needs.preprocess.outputs.dev_matrix }}
-        echo ${{ needs.preprocess.outputs.stg_matrix }}
-        echo ${{ needs.preprocess.outputs.prod_matrix }}
