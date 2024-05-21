@@ -1,0 +1,64 @@
+name: Platform Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      customers:
+        description: 'Customer JSON'
+        required: true
+        default: '[{"name": "itc", "env": ["dev"]}, {"name": "be", "env": ["dev", "stg", "prod"]}, {"name": "sp", "env": ["stg"]}]'
+
+jobs:
+  preprocess:
+    runs-on: ubuntu-latest
+    env:
+      customers: ${{ github.event.inputs.customers }}
+    outputs:
+      dev_matrix: ${{ steps.set-matrix.outputs.dev_matrix }}
+      stg_matrix: ${{ steps.set-matrix.outputs.stg_matrix }}
+      prod_matrix: ${{ steps.set-matrix.outputs.prod_matrix }}
+    steps:
+    - id: set-matrix
+      run: |
+        dev_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("dev") != null) | { name: .name, env: "dev" })')
+        stg_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("stg") != null) | { name: .name, env: "stg" })')
+        prod_matrix=$(echo "$customers" | jq -c 'map(select(.env | index("prod") != null) | { name: .name, env: "prod" })')
+        echo "dev_matrix={\"include\":$dev_matrix}" >> $GITHUB_OUTPUT
+        echo "stg_matrix={\"include\":$stg_matrix}" >> $GITHUB_OUTPUT
+        echo "prod_matrix={\"include\":$prod_matrix}" >> $GITHUB_OUTPUT
+
+  platform-release-dev:
+    needs: preprocess
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.preprocess.outputs.dev_matrix) }}
+    steps:
+    - run: |
+        echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
+        echo ${{ needs.preprocess.outputs.dev_matrix }}
+        echo ${{ needs.preprocess.outputs.stg_matrix }}
+        echo ${{ needs.preprocess.outputs.prod_matrix }}
+
+  platform-release-stg:
+    needs: [ preprocess , platform-release-dev ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.preprocess.outputs.stg_matrix) }}
+    steps:
+    - run: |
+        echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
+        echo ${{ needs.preprocess.outputs.dev_matrix }}
+        echo ${{ needs.preprocess.outputs.stg_matrix }}
+        echo ${{ needs.preprocess.outputs.prod_matrix }}
+
+  platform-release-prod:
+    needs: [ preprocess , platform-release-stg ]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix: ${{ fromJSON(needs.preprocess.outputs.prod_matrix) }}
+    steps:
+    - run: |
+        echo "Matrix - Customer ${{ matrix.customer }}, Env ${{ matrix.env }}"
+        echo ${{ needs.preprocess.outputs.dev_matrix }}
+        echo ${{ needs.preprocess.outputs.stg_matrix }}
+        echo ${{ needs.preprocess.outputs.prod_matrix }}
