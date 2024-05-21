@@ -1,7 +1,5 @@
 name: Generate Matrix
 
-name: Platform Release
-
 on:
   workflow_dispatch:
     inputs:
