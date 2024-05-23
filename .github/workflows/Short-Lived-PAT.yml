@@ -1,0 +1,85 @@
+name: ShortLivedPAT
+
+on:
+  workflow_dispatch:
+    inputs:
+      customers:
+        description: 'Customer JSON'
+        required: true
+        default: '[{"Customer": "backend", "Environments": ["development"]}]'
+
+jobs:
+
+  pre-processing:
+    runs-on: ${{ vars.GHA_RUNNER }}
+    env:
+      customers: ${{ github.event.inputs.customers }}
+    outputs:
+      development_matrix: ${{ steps.set-matrix.outputs.development_matrix }}
+      staging_matrix: ${{ steps.set-matrix.outputs.staging_matrix }}
+      production_matrix: ${{ steps.set-matrix.outputs.production_matrix }}
+    steps:
+    - id: set-matrix
+      run: |
+        development_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("development") != null) | { Customer: .Customer, Environment: "dev" })')
+        staging_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("staging") != null) | { Customer: .Customer, Environment: "stg" })')
+        production_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("production") != null) | { Customer: .Customer, Environment: "prod" })')
+        echo "development_matrix={\"include\":$development_matrix}" >> $GITHUB_OUTPUT
+        echo "staging_matrix={\"include\":$staging_matrix}" >> $GITHUB_OUTPUT
+        echo "production_matrix={\"include\":$production_matrix}" >> $GITHUB_OUTPUT
+        
+  platform-release-development:
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: pre-processing
+    environment: ${{ matrix.Customer }}-${{ matrix.Environment }}
+    runs-on: ${{ vars.GHA_RUNNER }}
+    strategy:
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.development_matrix) }}
+
+    steps:
+    - id: Generate_GH_TOKEN
+      name: Create GitHub App token
+      uses: actions/create-github-app-token@v1.10.0
+      with:
+        app-id: ${{ vars.SERVICE_VERSION_UPDATER_APP_ID }}
+        private-key: ${{ secrets.SERVICE_VERSION_UPDATER_PRIVATE_KEY }}
+        repositories: backend-infrastructure
+
+    - name: Checkout this repository
+      uses: actions/checkout@v4
+      with:
+        path: infrastructure/
+
+    - name: Clone Customer Infrastructure Repository
+      uses: actions/checkout@v4
+      env:
+        GH_TOKEN: ${{ steps.Generate_GH_TOKEN.outputs.token }}
+      with:
+        repository: xybteam/${{ matrix.Customer }}-infrastructure
+        token: ${{ steps.Generate_GH_TOKEN.outputs.token }}
+        path: ${{ matrix.Customer }}-infrastructure/
+        
+    - name: Run update-versions.py script
+      run: |
+        python3 update_versions.py customers-release-versions/${{ matrix.Customer }}-versions.json ../${{ matrix.Customer }}-infrastructure/k8s-layer/helm/${{ matrix.Environment }}-microservices/values/
+      working-directory: ${{ github.workspace }}/infrastructure/
+
+    - name: Commit, and Push new service versions
+      env:
+        GH_TOKEN: ${{ steps.Generate_GH_TOKEN.outputs.token }}
+        GITHUB_SHA: ${{ github.sha }}
+      if: success()
+      run: |
+        gh auth status
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git checkout -b "PlatformRelease/${{ matrix.Customer }}-${{ matrix.Environment }}-${GITHUB_SHA::7}"
+        git add .
+        git commit -m "Update versions for ${{ matrix.Customer }} in ${{ matrix.Environment }}"
+        git push -u origin PlatformRelease/${{ matrix.Customer }}-${{ matrix.Environment }}-${GITHUB_SHA::7}
+      working-directory: ${{ github.workspace }}/${{ matrix.Customer }}-infrastructure/
+
+    - name: Create a pull request
+      run: |
+        gh pr create --title "PlatformRelease/${{ matrix.Customer }}-${{ matrix.Environment }}-${GITHUB_SHA::7}" --body "Updated service versions for platform release of ${{ matrix.Customer }} in ${{ matrix.Environment }}"
+      working-directory: ${{ github.workspace }}/${{ matrix.Customer }}-infrastructure/
