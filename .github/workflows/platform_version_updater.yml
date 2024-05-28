@@ -1,0 +1,73 @@
+name: Platform Version Updater
+
+on:
+  workflow_call:
+    inputs:
+      customer:
+        type: string
+        description: 'Customer name'
+        required: true
+      environment:
+        type: string
+        description: 'Customer environment'
+        required: true
+      platform_version:
+        type: string
+        description: 'New Platform version'
+        required: true
+
+jobs:
+  platform-version-updates:
+    name: platform-release-${{ inputs.customer }}-${{ inputs.environment }}
+    environment: ${{ inputs.customer }}-${{ inputs.environment }}
+    runs-on: ${{ vars.GHA_RUNNER }}
+
+    steps:
+    - id: Generate_GH_TOKEN
+      name: Create GitHub App token
+      uses: actions/create-github-app-token@v1.10.0
+      with:
+        app-id: ${{ vars.SERVICE_VERSION_UPDATER_APP_ID }}
+        private-key: ${{ secrets.SERVICE_VERSION_UPDATER_PRIVATE_KEY }}
+        repositories: backend-infrastructure
+
+    - name: Checkout this repository
+      uses: actions/checkout@v4
+      with:
+        path: infrastructure/
+
+    - name: Checkout Customer Infrastructure Repository
+      uses: actions/checkout@v4
+      env:
+        GH_TOKEN: ${{ steps.Generate_GH_TOKEN.outputs.token }}
+      with:
+        repository: "xybteam/${{ inputs.customer }}-infrastructure"
+        token: "${{ steps.Generate_GH_TOKEN.outputs.token }}"
+        path: "${{ inputs.customer }}-infrastructure/"
+        
+    - name: Run update-versions.py script
+      env: 
+        CUSTOMER_VALUES_DIRECTORY_PATH: "../${{ inputs.customer }}-infrastructure/k8s-layer/helm/${{ inputs.environment }}-microservices/values/"
+        CUSTOMER_VERSION_JSON_PATH: "customers-release-versions/${{ inputs.customer }}-versions.json"
+      working-directory: ${{ github.workspace }}/infrastructure/
+      run: |
+        python3 update_versions.py $CUSTOMER_VERSION_JSON_PATH $CUSTOMER_VALUES_DIRECTORY_PATH
+
+    - name: Create a PR with new platform version changes
+      env:
+        GH_TOKEN: ${{ steps.Generate_GH_TOKEN.outputs.token }}
+        GH_SHA: ${{ github.sha }}
+      working-directory: ${{ github.workspace }}/${{ inputs.customer }}-infrastructure/
+      if: success()
+      run: |
+        BRANCH_NAME=PlatformRelease/${{ inputs.customer }}-${{ inputs.environment }}-${{ inputs.platform_version }}-${GH_SHA::7}
+        COMMIT_MESSAGE="Updated versions for platform release version (${{ inputs.platform_version }}) in ${{ inputs.customer }} ${{ inputs.environment }} environment."
+        PR_TITLE="PlatformRelease/${{ inputs.customer }}-${{ inputs.environment }}-${GH_SHA::7}"
+        PR_BODY="Updated service versions for platform release of ${{ inputs.customer }} in ${{ inputs.environment }}"
+        git config --global user.name "${{ vars.GH_BOT_USERNAME }}"
+        git config --global user.email "${{ vars.GH_BOT_EMAIL }}"
+        git checkout -b $BRANCH_NAME
+        git add .
+        git commit -m "$COMMIT_MESSAGE"
+        git push -u origin $BRANCH_NAME
+        gh pr create --title "$PR_TITLE"  --body "$PR_BODY"
