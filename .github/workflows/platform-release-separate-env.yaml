@@ -1,0 +1,78 @@
+name: Platform Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      customers:
+        description: 'Customer JSON'
+        required: true
+        default: '[{"Customer": "backend", "Environments": ["development", "staging"]}]'
+      platform_version:
+        description: 'New Platform version'
+        required: true
+
+jobs:
+
+  pre-processing:
+    runs-on: ${{ vars.GHA_RUNNER }}
+    env:
+      customers: ${{ github.event.inputs.customers }}
+    outputs:
+      development_matrix: ${{ steps.set-matrix.outputs.development_matrix }}
+      staging_matrix: ${{ steps.set-matrix.outputs.staging_matrix }}
+      production_matrix: ${{ steps.set-matrix.outputs.production_matrix }}
+      has_development: ${{ steps.check-matrix.outputs.has_development }}
+      has_staging: ${{ steps.check-matrix.outputs.has_staging }}
+      has_production: ${{ steps.check-matrix.outputs.has_production }}
+    steps:
+    - id: set-matrix
+      run: |
+        development_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("development") != null) | { Customer: .Customer, Environment: "dev" })')
+        staging_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("staging") != null) | { Customer: .Customer, Environment: "stg" })')
+        production_matrix=$(echo "$customers" | jq -c 'map(select(.Environments | index("production") != null) | { Customer: .Customer, Environment: "prod" })')
+        echo "development_matrix={\"include\":$development_matrix}" >> $GITHUB_OUTPUT
+        echo "staging_matrix={\"include\":$staging_matrix}" >> $GITHUB_OUTPUT
+        echo "production_matrix={\"include\":$production_matrix}" >> $GITHUB_OUTPUT
+    - id: check-matrix
+      run: |
+        echo "has_development=$(if [ $(echo $development_matrix | jq '. | length') -eq 0 ]; then echo 'false'; else echo 'true'; fi)" >> $GITHUB_OUTPUT
+        echo "has_staging=$(if [ $(echo $staging_matrix | jq '. | length') -eq 0 ]; then echo 'false'; else echo 'true'; fi)" >> $GITHUB_OUTPUT
+        echo "has_production=$(if [ $(echo $production_matrix | jq '. | length') -eq 0 ]; then echo 'false'; else echo 'true'; fi)" >> $GITHUB_OUTPUT
+  platform-release-development:
+    if: ${{ needs.pre-processing.outputs.has_development == 'true' }}
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: pre-processing
+    strategy:
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.development_matrix) }}
+    uses: xybteam/xyb-infrastructure/.github/workflows/platform_version_updater.yml@main
+    with:
+      customer: ${{ matrix.Customer }}
+      environment: ${{ matrix.Environment }}
+      platform_version: ${{ github.event.inputs.platform_version }}
+    secrets: inherit
+
+  platform-release-staging:
+    if: ${{ needs.platform-release-development.outputs.has_staging == 'true' }}
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: platform-release-development
+    strategy:
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.staging_matrix) }}
+    uses: xybteam/xyb-infrastructure/.github/workflows/platform_version_updater.yml@main
+    with:
+      customer: ${{ matrix.Customer }}
+      environment: ${{ matrix.Environment }}
+      platform_version: ${{ github.event.inputs.platform_version }}
+    secrets: inherit
+
+  platform-release-production:
+    if: ${{ needs.platform-release-staging.outputs.has_production == 'true' }}
+    name: platform-release-${{ matrix.Customer }}-${{ matrix.Environment }}
+    needs: platform-release-staging
+    strategy:
+      matrix: ${{ fromJSON(needs.pre-processing.outputs.production_matrix) }}
+    uses: xybteam/xyb-infrastructure/.github/workflows/platform_version_updater.yml@main
+    with:
+      customer: ${{ matrix.Customer }}
+      environment: ${{ matrix.Environment }}
+      platform_version: ${{ github.event.inputs.platform_version }}
+    secrets: inherit
